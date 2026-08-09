@@ -1,0 +1,43 @@
+name: CI
+
+# Runs on pushes and on pull requests opened from branches of this repository.
+# Pull requests from forks are deliberately excluded so that untrusted code is
+# never executed automatically; review them, then start a run by hand with the
+# "Run workflow" button.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    # GitHub-hosted, not self-hosted: this is a public repository, and an
+    # ephemeral runner is the right place for code that outsiders can propose.
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.13']
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip jinja2
+
+      - name: Byte-compile every source file
+        run: python -m compileall -q mail_notifications.py
+
+      - name: Run unit tests
+        run: python -m unittest discover -v
