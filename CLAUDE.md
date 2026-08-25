@@ -31,3 +31,35 @@ dentro del mismo vault SOPS que las variables de un despliegue.
 
 Criterio completo, con el caso real que lo motivó:
 [`spec-gestion-secretos.md` §Capa 0](https://github.com/dferraes/support/blob/main/spec-gestion-secretos.md).
+
+## Secretos: descifrar sin llave local (`SOPS_AGE_KEY_CMD` + Bitwarden)
+
+En máquinas o sesiones que **no** tienen `~/.config/sops/age/keys.txt` — dev containers,
+remotos, sesiones de agente — el descifrado de los `*.sops.*` corre vía Bitwarden, sin copiar
+la llave a mano a cada máquina nueva:
+
+```sh
+export SOPS_AGE_KEY_CMD='rbw get "Llave age personal"'
+```
+
+Va en el shell profile de esa máquina (`~/.zshrc`/`~/.bashrc`) o en el `.envrc` del repo si usa
+`direnv`. **No toca `.sops.yaml` ni ningún archivo versionado** — es puramente del lado de quien
+descifra, no cambia quiénes son recipients. Es **aditivo**: donde ya existe la llave local, ésa
+sigue funcionando.
+
+- **No propongas copiar `keys.txt` a mano** — eso es lo que este mecanismo vino a eliminar.
+- **No crees un item nuevo de Bitwarden** para la llave: ya existe, se llama
+  `Llave age personal`. Dos items con el mismo secreto son dos fuentes de verdad.
+- Aplica **sólo a la llave personal de David**. Las llaves generadas en un host y que nunca
+  salen de ahí (p. ej. la de un poller de monitoreo) **no se migran** — si el repo tiene más de
+  un recipient, verifica cuál es cuál antes de tocar nada.
+- **Ojo con el falso OK al verificar:** `sops` cae de vuelta al archivo local sin avisar cuando
+  el CMD falla, así que un `sops -d` exitoso en la máquina de David **no prueba** que el CMD
+  sirva. La prueba válida esconde el archivo apuntando `XDG_CONFIG_HOME` a un directorio sin
+  `sops/age/` — ver el spec.
+- El agente **nunca** corre `rbw unlock` ni imprime la línea `AGE-SECRET-KEY-1…`.
+  `SOPS_AGE_KEY_CMD` y el nombre del item sí se commitean en claro: son configuración.
+
+Detalle completo y procedimiento de verificación:
+[`spec-gestion-secretos.md` §Capa 1](https://github.com/dferraes/support/blob/main/spec-gestion-secretos.md).
+
