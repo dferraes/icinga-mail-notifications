@@ -97,13 +97,48 @@ class TestNotificationContent(unittest.TestCase):
             ["--icingaweb2_base_url", "https://icinga.example.com/icingaweb2"]
         )
         self.assertIn(
-            "https://icinga.example.com/icingaweb2/monitoring/host/show?host=web01",
+            "https://icinga.example.com/icingaweb2/icingadb/host?name=web01",
             body,
         )
 
+    def test_link_never_uses_the_retired_monitoring_module(self):
+        """El módulo `monitoring` se retiró en Icinga Web 2.12: sus rutas devuelven 404.
+
+        Es una regresión cara y silenciosa —el correo llega perfecto y el botón lleva a
+        "Page not found"—, así que se fija con una prueba propia y no sólo con la de arriba.
+        """
+        _, _, body, _ = run_main(
+            ["--icingaweb2_base_url", "https://icinga.example.com/icingaweb2"]
+        )
+        self.assertNotIn("/monitoring/", body)
+
+    def test_service_link_uses_icingadb_route(self):
+        _, _, body, _ = run_main(
+            [
+                "--icingaweb2_base_url", "https://icinga.example.com/icingaweb2",
+                "--servicedisplayname", "Host alive",
+            ]
+        )
+        # ⚠️ El `&` sale como `&amp;`: es el autoescape de Jinja y es HTML CORRECTO —un `&`
+        # suelto en un atributo es inválido, y el navegador lo revierte al seguir el enlace.
+        # Se asserta la forma REAL para que la prueba no invite a "arreglar" el escape.
+        self.assertIn("/icingadb/service?name=Host%20alive&amp;host.name=web01", body)
+
+    def test_object_name_wins_over_display_name_in_the_link(self):
+        """Icinga DB Web enruta por NOMBRE de objeto; el display name puede diferir."""
+        _, _, body, _ = run_main(
+            [
+                "--icingaweb2_base_url", "https://icinga.example.com/icingaweb2",
+                "--hostdisplayname", "Servidor Web Uno",
+                "--hostname", "web01",
+            ]
+        )
+        self.assertIn("/icingadb/host?name=web01", body)
+        self.assertNotIn("name=Servidor", body)
+
     def test_no_link_without_base_url(self):
         _, _, body, _ = run_main()
-        self.assertNotIn("/monitoring/host/show", body)
+        self.assertNotIn("/icingadb/host", body)
 
     def test_check_output_is_html_escaped(self):
         """Jinja2 autoescaping must neutralize markup coming from a check."""

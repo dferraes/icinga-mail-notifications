@@ -46,7 +46,7 @@
             {% endif %}
             {% if icingaweb2_url %}
             <div style="text-align: center;">
-                <a href="{{ icingaweb2_url }}" class="action-button">View in Icinga</a>
+                <a href="{{ icingaweb2_url }}" class="action-button">{{ t.view_in_icinga or 'View in Icinga' }}</a>
             </div>
             {% endif %}
         </div>

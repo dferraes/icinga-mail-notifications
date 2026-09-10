@@ -122,6 +122,12 @@ def main():
     parser.add_argument("--servicedisplayname", default="", help="The display name of the service (if applicable)")
     parser.add_argument("--notification_servicenotes", default="", help="Notes for the service")
     parser.add_argument("--icingaweb2_base_url", default="", help="Base URL for Icinga Web 2")
+    # Icinga DB Web enruta por el NOMBRE del objeto, no por su display name. Casi siempre
+    # coinciden (Icinga copia el nombre al display name si no se declara otro), pero cuando
+    # difieren el enlace lleva a un objeto inexistente. Se aceptan opcionales y con respaldo
+    # al display name para que esto funcione sin tocar el NotificationCommand.
+    parser.add_argument("--hostname", default="", help="Object name of the host (defaults to its display name)")
+    parser.add_argument("--servicename", default="", help="Object name of the service (defaults to its display name)")
 
     try:
         args = parser.parse_args()
@@ -143,6 +149,7 @@ def main():
             'notification_comment': 'Notification Comment',
             'author': 'Author',
             'comment': 'Comment',
+            'view_in_icinga': 'View in Icinga',
         },
         'es': {
             'host': 'Host',
@@ -155,6 +162,7 @@ def main():
             'notification_comment': 'Comentario de la Notificación',
             'author': 'Autor',
             'comment': 'Comentario',
+            'view_in_icinga': 'Ver en Icinga',
         }
     }
     # Fallback to English if the language is not defined
@@ -169,14 +177,18 @@ def main():
         object_type = t['host']
         object_name = args.hostdisplayname
         if args.icingaweb2_base_url:
-            icingaweb2_url = f"{args.icingaweb2_base_url}/monitoring/host/show?host={url_quote(args.hostdisplayname)}"
+            icingaweb2_url = f"{args.icingaweb2_base_url}/icingadb/host?name={url_quote(args.hostname or args.hostdisplayname)}"
     else:
         subject = f"[{args.notificationtype}] {t['service']} {args.servicedisplayname} {t['on']} {args.hostdisplayname} {t['is']} {args.state}"
         notes = args.notification_servicenotes
         object_type = t['service']
         object_name = args.servicedisplayname
         if args.icingaweb2_base_url:
-            icingaweb2_url = f"{args.icingaweb2_base_url}/monitoring/service/show?host={url_quote(args.hostdisplayname)}&service={url_quote(args.servicedisplayname)}"
+            icingaweb2_url = (
+                f"{args.icingaweb2_base_url}/icingadb/service"
+                f"?name={url_quote(args.servicename or args.servicedisplayname)}"
+                f"&host.name={url_quote(args.hostname or args.hostdisplayname)}"
+            )
 
     # --- Map state and notification type to color for better visual representation ---
     type_and_state_colors = {
