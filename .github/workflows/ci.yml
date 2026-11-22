@@ -17,7 +17,8 @@ jobs:
   tests:
     # GitHub-hosted, not self-hosted: this is a public repository, and an
     # ephemeral runner is the right place for code that outsiders can propose.
-    runs-on: ubuntu-latest
+    # Python 3.9 has no setup-python build for Ubuntu 26.04.
+    runs-on: ${{ matrix.python-version == '3.9' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
