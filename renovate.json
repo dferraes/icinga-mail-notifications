@@ -1,9 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>dferraes/renovate-config"],
+  "extends": [
+    "github>dferraes/renovate-config"
+  ],
   "description": [
     "Renovate keeps this repo's declared dependencies up to date.",
     "No automerge on purpose: every bump is reviewed before merging."
   ],
-  "baseBranchPatterns": ["main"]
+  "baseBranchPatterns": [
+    "develop",
+    "main"
+  ]
 }
