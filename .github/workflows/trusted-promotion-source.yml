@@ -5,6 +5,7 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, edited, ready_for_review]
 
+# The repository Actions policy prevents pull_request from using this runner.
 permissions: {}
 
 jobs:
