@@ -1,0 +1,52 @@
+name: CI from base
+
+# The workflow comes from the base repository. Jobs only test PRs from this repository.
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Trusted tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      (github.event.pull_request.head.repo.id == github.event.repository.id &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: '3.9'
+            image: docker.io/library/python:3.9-bookworm@sha256:ff12c273af1e1814efcd8dfdefe16a70a4d901afe94dce721ffed8a34176f285
+          - python-version: '3.11'
+            image: docker.io/library/python:3.11-bookworm@sha256:726d304906fa5eb468e5531e366548d1903286352f5adb54ef508ac01fbd80c6
+          - python-version: '3.13'
+            image: docker.io/library/python:3.13-bookworm@sha256:cc55e4ded9c95f6ce2133b3d096db43f214d280c2a8af65d83e246c8fa7d168c
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || github.sha }}
+          persist-credentials: false
+
+      - name: Confirm the tested merge contains the PR head
+        if: github.event_name == 'pull_request_target'
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          head_parent="$(git cat-file -p HEAD | sed -n 's/^parent //p' | sed -n '2p')"
+          test -n "$PR_HEAD_SHA" && test "$head_parent" = "$PR_HEAD_SHA"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip jinja2
+
+      - name: Byte-compile every source file
+        run: python -m compileall -q mail_notifications.py
+
+      - name: Run unit tests
+        run: python -m unittest discover -v
