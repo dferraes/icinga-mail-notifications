@@ -42,7 +42,7 @@ jobs:
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          head_parent="$(git cat-file -p HEAD | sed -n 's/^parent //p' | sed -n '2p')"
+          head_parent="$(git -c safe.directory="$GITHUB_WORKSPACE" cat-file -p HEAD | sed -n 's/^parent //p' | sed -n '2p')"
           test -n "$PR_HEAD_SHA" && test "$head_parent" = "$PR_HEAD_SHA"
 
       - name: Install dependencies
