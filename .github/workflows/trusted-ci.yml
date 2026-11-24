@@ -13,7 +13,7 @@ permissions:
 jobs:
   tests:
     name: Trusted tests (${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, personal]
     container:
       image: ${{ matrix.image }}
     if: >-
